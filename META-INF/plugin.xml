@@ -1,0 +1,95 @@
+<idea-plugin version="2">
+    <id>me.skyun.java2uml</id>
+    <name>gen uml</name>
+    <version>1.0</version>
+    <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
+
+    <description><![CDATA[
+      Enter short description for your plugin here.<br>
+      <em>most HTML tags may be used</em>
+    ]]></description>
+
+    <change-notes><![CDATA[
+      Add change notes here.<br>
+      <em>most HTML tags may be used</em>
+    ]]>
+    </change-notes>
+
+    <!-- please see http://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
+    <idea-version since-build="131"/>
+
+    <!-- please see http://confluence.jetbrains.com/display/IDEADEV/Plugin+Compatibility+with+IntelliJ+Platform+Products
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends>
+    -->
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+        <!--<extensions defaultExtensionNs="com.intellij">-->
+        <toolWindow id="PlantUML" icon="/images/uml.png" anchor="right"
+                    factoryClass="org.plantuml.idea.toolwindow.PlantUmlToolWindowFactory"/>
+        <!--<fileTypeFactory implementation="org.plantuml.idea.lang.PlantUmlTypeFactory"/>-->
+        <!--<lang.parserDefinition language="PUML" implementationClass="org.plantuml.idea.lang.PlantUmlParserDefinition"/>-->
+        <!--<applicationConfigurable instance="org.plantuml.idea.lang.settings.PlantUmlSettingsPage"/>-->
+        <!--<applicationService serviceImplementation="org.plantuml.idea.lang.settings.PlantUmlSettings"/>-->
+        <!--<externalAnnotator implementationClass="org.plantuml.idea.lang.annotator.PlantUmlExternalAnnotator"-->
+                           <!--language="PUML"/>-->
+        <!--</extensions>-->
+    </extensions>
+
+    <application-components>
+        <!-- Add your application components here -->
+    </application-components>
+
+    <project-components>
+        <!-- Add your project components here -->
+    </project-components>
+
+    <actions>
+        <!-- Add your actions here -->
+        <group id="MyPlugin.SampleMenu" text="_Sample Menu" description="Sample menu">
+            <add-to-group group-id="MainMenu" anchor="last"/>
+            <action id="Myplugin.GenUml" class="lll.GenUml" text="Gen _Uml"
+                    description="A test menu item"/>
+            <!--<action id="Myplugin.Dialogs" class="Mypackage.MyShowDialog" text="Show _Dialog"-->
+            <!--description="A test menu item"/>-->
+        </group>
+
+
+        <group id="PlantUML.Toolbar" text="PlantUML" description="PlantUML toolbar">
+            <!--<add-to-group group-id="MainMenu" anchor="last"/>-->
+            <action id="PlantUML.CopyToClipboard" description="Copy current diagram to clipboard"
+                    class="org.plantuml.idea.action.CopyDiagramToClipboardAction"
+                    icon="/actions/copy.png" text="Copy current diagram to clipboard"
+                    />
+            <action id="PlantUML.SaveToFile" description="Save current diagram only"
+                    class="org.plantuml.idea.action.SaveDiagramToFileAction"
+                    icon="/actions/menu-saveall.png" text="Save current diagram only"/>
+            <action id="PlantUML.SaveAllToFile" description="Save all diagrams"
+                    class="org.plantuml.idea.action.SaveAllDiagramToFileAction"
+                    icon="/actions/export.png" text="Save all diagrams in current file"/>
+            <!--<separator/>-->
+
+            <action id="PlantUML.ZoomIn" description="Zoom In" class="org.plantuml.idea.action.ZoomInAction"
+                    icon="/graph/zoomIn.png" text="Zoom In"/>
+            <action id="PlantUML.ZoomOut" description="Zoom In" class="org.plantuml.idea.action.ZoomOutAction"
+                    icon="/graph/zoomOut.png" text="Zoom Out"/>
+            <action id="PlantUML.ZoomActual" description="Actual Zoom" class="org.plantuml.idea.action.ZoomActualAction"
+                    icon="/graph/actualZoom.png" text="Actual Zoom"/>
+            <!--<separator/>-->
+            <action id="PlantUML.PrevPage" description="Prev Page" class="org.plantuml.idea.action.PrevPageAction"
+                    icon="/actions/back.png" text="Previous Page"/>
+            <action id="PlantUML.SelectPage" description="Select Page" class="org.plantuml.idea.action.SelectPageAction"
+                    text="Select Page"/>
+
+            <action id="PlantUML.NextPage" description="Next Page" class="org.plantuml.idea.action.NextPageAction"
+                    icon="/actions/forward.png" text="Next Page"/>
+            <!--<separator/>-->
+            <action id="PlantUML.About" description="About" icon="/actions/help.png"
+                    class="org.plantuml.idea.action.AboutAction" text="About"/>
+        </group>
+
+    </actions>
+
+</idea-plugin>
