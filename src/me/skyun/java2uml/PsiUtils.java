@@ -6,11 +6,13 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiIdentifier;
 import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.PsiJavaToken;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.PsiReferenceExpression;
 import com.intellij.psi.PsiStatement;
+import com.intellij.psi.tree.IElementType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,12 +60,12 @@ public class PsiUtils {
         return localMethods[0];
     }
 
-    public static PsiMethod findPsiMethod(PsiClass psiClass, String methodName) {
-        PsiMethod[] methods = psiClass.findMethodsByName(methodName, false);
-        if (methods != null && methods.length > 0)
-            return methods[0];
-        else
-            return null;
+    public static PsiJavaToken findJavaToken(PsiElement psiElement, String token) {
+        for (PsiElement child : psiElement.getChildren()) {
+            if (child instanceof PsiJavaToken && child.getText().equals(token))
+                return (PsiJavaToken) child;
+        }
+        return null;
     }
 
     public static <T extends PsiElement> T findPsiElement(PsiElement source, Class<T> targetClass) {

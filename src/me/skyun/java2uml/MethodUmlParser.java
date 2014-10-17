@@ -87,7 +87,11 @@ public class MethodUmlParser extends UmlParser {
     }
 
     private static String getStatementText(PsiStatement statement, boolean endline) {
-        String uml = statement.getText().split("\n")[0];
+        PsiStatement _statement = (PsiStatement) statement.copy();
+        List<PsiAnonymousClass> innerClasses = PsiUtils.findPsiElements(_statement, PsiAnonymousClass.class, true);
+        for (PsiAnonymousClass innerClass : innerClasses)
+            innerClass.deleteChildRange(PsiUtils.findJavaToken(innerClass, "{"), PsiUtils.findJavaToken(innerClass, "}"));
+        String uml = _statement.getText().replace("\n", "\\n");
         if (endline)
             uml += "\n";
         return uml;
