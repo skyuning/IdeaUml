@@ -3,8 +3,10 @@ package me.skyun.java2uml;
 import com.intellij.psi.PsiAnonymousClass;
 import com.intellij.psi.PsiBlockStatement;
 import com.intellij.psi.PsiCodeBlock;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiExpressionStatement;
 import com.intellij.psi.PsiIfStatement;
+import com.intellij.psi.PsiJavaCodeReferenceElement;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiReferenceExpression;
 import com.intellij.psi.PsiStatement;
@@ -16,10 +18,10 @@ import java.util.List;
  */
 public class MethodUmlParser extends UmlParser {
 
-    private static String NORMAL_STATEMENT = "-d-> %s\n";
+    private static String NORMAL_STATEMENT = "----> %s\n";
     private static String REFERENCE_NAME = "%s#%d: %s -> %s";
-    private static String REFERENCE = "\"%s\" -r-> %s\n";
-    private static String REFERENCE2 = "\"%s\" -d-> %s\n";
+    private static String REFERENCE = "\"%s\" ----> %s\n";
+    private static String REFERENCE2 = "\"%s\" ----> %s\n";
 
     private PsiMethod mPsiMethod;
 
@@ -46,7 +48,7 @@ public class MethodUmlParser extends UmlParser {
             if (statement instanceof PsiIfStatement)
                 blockUml += getIfUml((PsiIfStatement) statement);
             else
-                blockUml += String.format(NORMAL_STATEMENT, statement.getText().split("\n")[0]);
+                blockUml += String.format(NORMAL_STATEMENT, getSimpleText(statement));
         }
         blockUml += "\n";
         return blockUml;
@@ -55,8 +57,12 @@ public class MethodUmlParser extends UmlParser {
     private String getInnerClassUml() {
         String innerClassUml = "";
         List<PsiAnonymousClass> anonyClasses = PsiUtils.findPsiElements(mPsiMethod.getBody(), PsiAnonymousClass.class, true);
-        for (int i = 0; i < anonyClasses.size(); i++)
-            innerClassUml += new ClassUmlParser(anonyClasses.get(i), "" + mPsiMethod.getName() + "#" + i).parse();
+        for (int i = 0; i < anonyClasses.size(); i++) {
+            PsiJavaCodeReferenceElement referenceElement =
+                PsiUtils.findPsiElement(anonyClasses.get(i), PsiJavaCodeReferenceElement.class);
+            String innerClassName = getFullMethodName(mPsiMethod) + "#" + i + referenceElement.getText();
+            innerClassUml += new ClassUmlParser(anonyClasses.get(i), innerClassName).parse();
+        }
         return innerClassUml;
     }
 
@@ -75,23 +81,23 @@ public class MethodUmlParser extends UmlParser {
                     continue;
                 PsiMethod refMethod = (PsiMethod) reference.resolve();
                 String refName = getReferenceText(i, statement, refMethod);
-                referenceUml += String.format(REFERENCE, getStatementText(statement, false), refName + "<< Begin >>");
+                referenceUml += String.format(REFERENCE, getSimpleText(statement, false), refName + "<< Begin >>");
                 referenceUml += String.format(REFERENCE2, refName, getFullMethodName(refMethod));
             }
         }
         return referenceUml + "\n";
     }
 
-    private static String getStatementText(PsiStatement statement) {
-        return getStatementText(statement, true);
+    private static String getSimpleText(PsiElement element) {
+        return getSimpleText(element, true);
     }
 
-    private static String getStatementText(PsiStatement statement, boolean endline) {
-        PsiStatement _statement = (PsiStatement) statement.copy();
-        List<PsiAnonymousClass> innerClasses = PsiUtils.findPsiElements(_statement, PsiAnonymousClass.class, true);
+    private static String getSimpleText(PsiElement element, boolean endline) {
+        PsiElement _element = element.copy();
+        List<PsiAnonymousClass> innerClasses = PsiUtils.findPsiElements(_element, PsiAnonymousClass.class, true);
         for (PsiAnonymousClass innerClass : innerClasses)
             innerClass.deleteChildRange(PsiUtils.findJavaToken(innerClass, "{"), PsiUtils.findJavaToken(innerClass, "}"));
-        String uml = _statement.getText().replace("\n", "\\n");
+        String uml = _element.getText().replace("\n", "\\n");
         if (endline)
             uml += "\n";
         return uml;
@@ -99,7 +105,7 @@ public class MethodUmlParser extends UmlParser {
 
     private static String getReferenceText(int statementNo, PsiStatement statement, PsiMethod refMethod) {
         String callerMethodName = getFullMethodName(PsiUtils.getContainingMethod(statement));
-        String statementText = getStatementText(statement, false);
+        String statementText = getSimpleText(statement, false);
         String refMethodName = getFullMethodName(refMethod);
         return String.format(REFERENCE_NAME, callerMethodName, statementNo, statementText, refMethodName);
     }
@@ -109,29 +115,29 @@ public class MethodUmlParser extends UmlParser {
     }
 
     private static String getIfUml(PsiIfStatement ifStatement) {
-        String ifUml = "if " + ifStatement.getCondition().getText() + "\n";
+        String ifUml = "if " + getSimpleText(ifStatement.getCondition());
 
         if (ifStatement.getThenBranch() instanceof PsiExpressionStatement) {
-            ifUml += "  --> [yes] " + getStatementText(ifStatement.getThenBranch());
+            ifUml += "  --> [yes] " + getSimpleText(ifStatement.getThenBranch());
         } else if (ifStatement.getThenBranch() instanceof PsiBlockStatement) {
             PsiBlockStatement thenBlock = (PsiBlockStatement) ifStatement.getThenBranch();
             PsiStatement[] thenStatements = thenBlock.getCodeBlock().getStatements();
-            ifUml += "  --> [yes] " + getStatementText(thenStatements[0]);
+            ifUml += "  --> [yes] " + getSimpleText(thenStatements[0]);
             for (int i = 1; i < thenStatements.length; i++) {
-                ifUml += "  --> " + getStatementText(thenStatements[i]);
+                ifUml += "  --> " + getSimpleText(thenStatements[i]);
             }
         }
 
         ifUml += "else\n";
 
         if (ifStatement.getElseBranch() instanceof PsiExpressionStatement) {
-            ifUml += "  --> [no] " + ifStatement.getElseBranch().getText().split("\n")[0] + "\n";
+            ifUml += "  --> [no] " + getSimpleText(ifStatement.getElseBranch());
         } else if (ifStatement.getElseBranch() instanceof PsiBlockStatement) {
             PsiBlockStatement elseBlock = (PsiBlockStatement) ifStatement.getElseBranch();
             PsiStatement[] elseStatements = elseBlock.getCodeBlock().getStatements();
-            ifUml += "  --> [no] " + elseStatements[0].getText().split("\n")[0] + "\n";
+            ifUml += "  --> [no] " + getSimpleText(elseStatements[0]);
             for (int i = 1; i < elseStatements.length; i++) {
-                ifUml += "  --> " + elseStatements[i].getText().split("\n")[0] + "\n";
+                ifUml += "  --> " + getSimpleText(elseStatements[i]);
             }
         }
 

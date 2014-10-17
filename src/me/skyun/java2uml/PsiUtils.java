@@ -12,7 +12,6 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.PsiReferenceExpression;
 import com.intellij.psi.PsiStatement;
-import com.intellij.psi.tree.IElementType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +34,16 @@ public class PsiUtils {
             assert element != null;
             if (element instanceof PsiMethod)
                 return (PsiMethod) element;
+        }
+    }
+
+    public static <T extends PsiElement> T getContainingParent(PsiElement child, Class<T> parentType) {
+        PsiElement element = child;
+        while (true) {
+            element = element.getParent();
+            assert element != null;
+            if (parentType.isAssignableFrom(element.getClass()))
+                return (T) element;
         }
     }
 
