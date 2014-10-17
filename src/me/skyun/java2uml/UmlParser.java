@@ -21,7 +21,7 @@ public abstract class UmlParser {
         return String.format(PARTITION, name, content);
     }
 
-    protected String addIndent(String uml) {
+    protected static String addIndent(String uml) {
         String[] lines = uml.split("\n");
         uml = "";
         for (String l : lines)
