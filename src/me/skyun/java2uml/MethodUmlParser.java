@@ -2,15 +2,18 @@ package me.skyun.java2uml;
 
 import com.intellij.psi.PsiAnonymousClass;
 import com.intellij.psi.PsiBlockStatement;
-import com.intellij.psi.PsiCodeBlock;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiExpressionStatement;
 import com.intellij.psi.PsiIfStatement;
 import com.intellij.psi.PsiJavaCodeReferenceElement;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.PsiReferenceExpression;
 import com.intellij.psi.PsiStatement;
 
+import org.stathissideris.ascii2image.core.Pair;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -18,10 +21,9 @@ import java.util.List;
  */
 public class MethodUmlParser extends UmlParser {
 
-    private static String NORMAL_STATEMENT = "----> %s\n";
-    private static String REFERENCE_NAME = "%s#%d: %s -> %s";
-    private static String REFERENCE = "\"%s\" ----> %s\n";
-    private static String REFERENCE2 = "\"%s\" ----> %s\n";
+    private static String CONTINUE_STATEMENT = "-d-> %s\n";
+    private static String CODE_FRAG = "-d-> code fragment: (%d-%d)\n";
+    private static String REFERENCE = "\"%s\" -r-> [%s] %s << Begin >>\n";
 
     private PsiMethod mPsiMethod;
 
@@ -32,26 +34,12 @@ public class MethodUmlParser extends UmlParser {
 
     @Override
     public String parse() {
-        if (mPsiMethod.getBody().getStatements().length > 0) {
-            String uml = "\"" + getFullMethodName(mPsiMethod) + "\"";
-            uml += getCodeBlockUML();
-            uml += getReferenceUml();
-            uml += getInnerClassUml();
-            return uml;
-        } else
-            return "";
-    }
-
-    private String getCodeBlockUML() {
-        String blockUml = "";
-        for (PsiStatement statement : mPsiMethod.getBody().getStatements()) {
-            if (statement instanceof PsiIfStatement)
-                blockUml += getIfUml((PsiIfStatement) statement);
-            else
-                blockUml += String.format(NORMAL_STATEMENT, getSimpleText(statement));
-        }
-        blockUml += "\n";
-        return blockUml;
+        String fullMethodName = getFullMethodName(mPsiMethod);
+        String uml = String.format("=== %s_start === ", fullMethodName) + parseStatements();
+        uml = addIndent(uml);
+        uml = formatPartition(fullMethodName, uml);
+        return uml;
+//        uml += getInnerClassUml();
     }
 
     private String getInnerClassUml() {
@@ -66,25 +54,90 @@ public class MethodUmlParser extends UmlParser {
         return innerClassUml;
     }
 
-    private String getReferenceUml() {
-        PsiCodeBlock codeBlock = mPsiMethod.getBody();
-        String referenceUml = "";
-        for (int i = 0; i < codeBlock.getStatements().length; i++) {
-            PsiStatement statement = codeBlock.getStatements()[i];
-            // if statement
-            if (statement instanceof PsiIfStatement)
+    private String parseStatements() {
+        String uml = "";
+        String callUml = "";
+        List<PsiStatement> codeFrag = new ArrayList<PsiStatement>();
+        for (PsiStatement statement : mPsiMethod.getBody().getStatements()) {
+            // handle anonymous class
+            List<PsiAnonymousClass> anonyClasses = PsiUtils.findPsiElements(statement, PsiAnonymousClass.class, true);
+            if (!anonyClasses.isEmpty()) {
+                uml += String.format(CONTINUE_STATEMENT, getSimpleText(statement));
                 continue;
+            }
 
-            // normal statement, get its reference method uml
-            for (PsiReferenceExpression reference : PsiUtils.findPsiElements(statement, PsiReferenceExpression.class, true)) {
-                if (!(reference.resolve() instanceof PsiMethod))
-                    continue;
-                PsiMethod refMethod = (PsiMethod) reference.resolve();
-                String refName = getReferenceText(i, statement, refMethod);
-                referenceUml += String.format(REFERENCE, getSimpleText(statement, false), refName + "<< Begin >>");
-                referenceUml += String.format(REFERENCE2, refName, getFullMethodName(refMethod));
+            // get resolved methods in statement
+            List<PsiMethodCallExpression> statementCalls =
+                PsiUtils.findPsiElements(statement, PsiMethodCallExpression.class, true);
+            List<PsiMethod> resolvedMethods = new ArrayList<PsiMethod>();
+            for (PsiMethodCallExpression call : statementCalls) {
+                PsiReferenceExpression callRef = PsiUtils.findPsiElement(call, PsiReferenceExpression.class);
+                PsiMethod resolvedMethod = (PsiMethod) callRef.resolve();
+                if (resolvedMethod != null)
+                    resolvedMethods.add(resolvedMethod);
+            }
+
+            // normal statement with no resolved method call, add to code fragment
+            if (resolvedMethods.isEmpty()) {
+                codeFrag.add(statement);
+                continue;
+            }
+
+            // is a method call, parse pre codeFrag first
+            uml += getCodeFragmentUml(codeFrag);
+
+            // parse the method call
+            for (PsiMethod resolvedMthod : resolvedMethods) {
+                uml += String.format(CONTINUE_STATEMENT, getSimpleText(statement, false));
+                String refMethodFullName = getFullMethodName(resolvedMthod);
+                callUml += String.format(REFERENCE, getSimpleText(statement, false), resolvedMthod.getName(), refMethodFullName);
             }
         }
+        uml += getCodeFragmentUml(codeFrag);
+        return uml + callUml;
+    }
+
+    private String getCodeFragmentUml(List<PsiStatement> codeFrag) {
+        if (codeFrag.isEmpty())
+            return "";
+
+        int codeFragStart = codeFrag.get(0).getTextOffset();
+        int codeFragEnd = codeFrag.get(codeFrag.size() - 1).getTextRange().getEndOffset();
+        String fragNode = String.format(CODE_FRAG, codeFragStart, codeFragEnd);
+
+        String note = "";
+        for (PsiStatement fragStatement : codeFrag)
+            note += fragStatement.getText() + "\n";
+        note = addIndent(note);
+        note = "note right\n" + note + "end note\n\n";
+        note = addIndent(note);
+        codeFrag.clear();
+        return fragNode + note;
+    }
+
+    private String getReferenceUml() {
+        if (mPsiMethod.getBody().getStatements().length == 0)
+            return "";
+        List<PsiReferenceExpression> references = PsiUtils.findPsiElements(mPsiMethod.getBody(), PsiReferenceExpression.class, true);
+        if (references.isEmpty())
+            return "";
+        List<Pair<PsiStatement, PsiMethod>> statementRefs = new ArrayList<Pair<PsiStatement, PsiMethod>>();
+        for (PsiReferenceExpression ref : references) {
+            if (!(ref.resolve() instanceof PsiMethod))
+                continue;
+            PsiStatement statement = PsiUtils.getContainingParent(ref, PsiStatement.class);
+            Pair<PsiStatement, PsiMethod> pair = new Pair<PsiStatement, PsiMethod>(statement, (PsiMethod) ref.resolve());
+            statementRefs.add(pair);
+        }
+        if (statementRefs.isEmpty())
+            return "";
+
+        String referenceUml = "";
+        for (Pair<PsiStatement, PsiMethod> pair : statementRefs)
+            referenceUml += String.format(CONTINUE_STATEMENT, getSimpleText(pair.first));
+        for (Pair<PsiStatement, PsiMethod> pair : statementRefs)
+            referenceUml += String.format(REFERENCE, getSimpleText(pair.first, false),
+                pair.second.getName(), getFullMethodName(pair.second));
         return referenceUml + "\n";
     }
 
@@ -103,15 +156,8 @@ public class MethodUmlParser extends UmlParser {
         return uml;
     }
 
-    private static String getReferenceText(int statementNo, PsiStatement statement, PsiMethod refMethod) {
-        String callerMethodName = getFullMethodName(PsiUtils.getContainingMethod(statement));
-        String statementText = getSimpleText(statement, false);
-        String refMethodName = getFullMethodName(refMethod);
-        return String.format(REFERENCE_NAME, callerMethodName, statementNo, statementText, refMethodName);
-    }
-
-    private static String getFullMethodName(PsiMethod method) {
-        return method.getContainingClass().getName() + "::" + method.getName() + "()";
+    public static String getFullMethodName(PsiMethod method) {
+        return method.getContainingClass().getName() + "__" + method.getName();
     }
 
     private static String getIfUml(PsiIfStatement ifStatement) {

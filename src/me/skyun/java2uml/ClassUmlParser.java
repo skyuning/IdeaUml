@@ -8,7 +8,6 @@ import com.intellij.psi.PsiMethod;
  */
 public class ClassUmlParser extends UmlParser {
 
-    private String mUml = "";
     private PsiClass mPsiClass;
     private String mName;
 
@@ -23,15 +22,11 @@ public class ClassUmlParser extends UmlParser {
     }
 
     public String parse() {
-        mUml += "partition " + mName + "\n";
-        PsiMethod[] classMethods = mPsiClass.getMethods();
-        mUml += String.format(JavaUmlParser.UML_DIVIDER, "Methods");
-        for (PsiMethod classMethod : classMethods) {
-            String methodUml = new MethodUmlParser(classMethod).parse();
-            mUml += methodUml;
-        }
-
-        mUml += "}\n\n";
-        return mUml;
+        String uml = "";
+        for (PsiMethod classMethod : mPsiClass.getMethods())
+            uml += new MethodUmlParser(classMethod).parse();
+        uml = addIndent(uml);
+        uml = formatPartition(mName, uml);
+        return uml;
     }
 }

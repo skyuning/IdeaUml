@@ -8,8 +8,6 @@ import com.intellij.psi.PsiJavaFile;
  */
 public class JavaUmlParser extends UmlParser {
 
-    public static String UML_DIVIDER = "'---------- %s ----------\n";
-
     private static String UML_START = "@startuml\n\n";
     private static String UML_END = "@enduml";
 

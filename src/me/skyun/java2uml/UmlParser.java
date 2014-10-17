@@ -7,6 +7,8 @@ import com.intellij.psi.PsiElement;
  */
 public abstract class UmlParser {
 
+    private static final String PARTITION = "partition %s {\n%s\n}\n\n";
+
     private PsiElement mPsiElement;
 
     public UmlParser(PsiElement psiElement) {
@@ -14,4 +16,16 @@ public abstract class UmlParser {
     }
 
     public abstract String parse();
+
+    protected String formatPartition(String name, String content) {
+        return String.format(PARTITION, name, content);
+    }
+
+    protected String addIndent(String uml) {
+        String[] lines = uml.split("\n");
+        uml = "";
+        for (String l : lines)
+            uml += "    " + l + "\n";
+        return uml;
+    }
 }
