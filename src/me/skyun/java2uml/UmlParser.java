@@ -28,4 +28,9 @@ public abstract class UmlParser {
             uml += "    " + l + "\n";
         return uml;
     }
+
+//    protected static String alignLeft(String uml) {
+//        String[] lines = uml.split("\n");
+//        for (int i=0;)
+//    }
 }
