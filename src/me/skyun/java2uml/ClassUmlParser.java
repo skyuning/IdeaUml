@@ -24,7 +24,7 @@ public class ClassUmlParser extends UmlParser {
     public String parse() {
         String uml = "";
         for (PsiMethod classMethod : mPsiClass.getMethods())
-            uml += new MethodUmlParser(classMethod).parse();
+            uml += new MethodUmlParser(mName, classMethod).parse();
         uml = addIndent(uml);
         uml = formatPartition(mName, uml);
         return uml;

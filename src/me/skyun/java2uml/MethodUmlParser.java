@@ -29,24 +29,29 @@ public class MethodUmlParser extends UmlParser {
     private static String REFERENCE = "\"%s\" -r-> \"call %s\" << Begin >>\n";
 
     private PsiMethod mPsiMethod;
+    private String mClassName;
 
-    public MethodUmlParser(PsiMethod psiMethod) {
+    public MethodUmlParser(String className, PsiMethod psiMethod) {
         super(psiMethod);
+        mClassName = className;
         mPsiMethod = psiMethod;
     }
 
     @Override
     public String parse() {
         String fullMethodName = getFullMethodName(mPsiMethod);
+
         String blockUml = String.format("=== %s_start === --> === %s_start ===\n", fullMethodName, fullMethodName);
         blockUml += getBlockUml(mPsiMethod.getBody());
+        blockUml += getInnerClassUml();
         blockUml = addIndent(blockUml);
         blockUml = formatPartition(fullMethodName, blockUml);
+
+        String referenceUml = getBlockReferenceUml(mPsiMethod.getBody());
+
         String uml = String.format("\"call %s\" --> %s\n", fullMethodName, fullMethodName)
-            + blockUml
-            + getBlockReferenceUml(mPsiMethod.getBody());
+            + blockUml + referenceUml;
         return uml;
-//        uml += getInnerClassUml();
     }
 
     private String getBlockUml(PsiCodeBlock codeBlock) {
@@ -65,11 +70,11 @@ public class MethodUmlParser extends UmlParser {
     private String getInnerClassUml() {
         String innerClassUml = "";
         List<PsiAnonymousClass> anonyClasses = PsiUtils.findPsiElements(mPsiMethod.getBody(), PsiAnonymousClass.class, true);
-        for (int i = 0; i < anonyClasses.size(); i++) {
+        for (PsiAnonymousClass anonyClass : anonyClasses) {
             PsiJavaCodeReferenceElement referenceElement =
-                PsiUtils.findPsiElement(anonyClasses.get(i), PsiJavaCodeReferenceElement.class);
-            String innerClassName = getFullMethodName(mPsiMethod) + "#" + i + referenceElement.getText();
-            innerClassUml += new ClassUmlParser(anonyClasses.get(i), innerClassName).parse();
+                PsiUtils.findPsiElement(anonyClass, PsiJavaCodeReferenceElement.class);
+            String innerClassName = referenceElement.getText() + "_" + referenceElement.getTextOffset();
+            innerClassUml += new ClassUmlParser(anonyClass, innerClassName).parse();
         }
         return innerClassUml;
     }
@@ -209,8 +214,8 @@ public class MethodUmlParser extends UmlParser {
         return statement.getTextOffset() + ":" + _element.getText().replace("\"", "'");
     }
 
-    public static String getFullMethodName(PsiMethod method) {
-        return method.getContainingClass().getName() + "__" + method.getName();
+    public String getFullMethodName(PsiMethod method) {
+        return mClassName + "__" + method.getName();
     }
 
     private String getIfUml(PsiIfStatement ifStatement, String nextStatementText) {
