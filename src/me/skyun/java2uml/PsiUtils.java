@@ -51,36 +51,6 @@ public class PsiUtils {
         return (T) result;
     }
 
-    public static PsiMethod[] findLocalMethods(PsiStatement statement) {
-        ArrayList<PsiMethod> localMethods = new ArrayList<PsiMethod>();
-        for (PsiMethodCallExpression call : PsiUtils.findPsiElements(statement, PsiMethodCallExpression.class, true)) {
-            if (getLocalMethod(call) != null)
-                localMethods.add(PsiUtils.getLocalMethod(call));
-        }
-        return localMethods.toArray(new PsiMethod[0]);
-    }
-
-    private static PsiMethod getLocalMethod(PsiMethodCallExpression call) {
-        PsiReferenceExpression reference = PsiUtils.findPsiElement(call, PsiReferenceExpression.class);
-        if (PsiUtils.findPsiElement(reference, PsiReferenceExpression.class) != null)
-            // if reference has reference, the reference is not local reference
-            return null;
-        PsiIdentifier identifier = PsiUtils.findPsiElement(reference, PsiIdentifier.class);
-        PsiClass psiClass = ((PsiJavaFile) call.getContainingFile()).getClasses()[0];
-        PsiMethod[] localMethods = psiClass.findMethodsByName(identifier.getText(), false);
-        if (localMethods == null || localMethods.length == 0)
-            return null;
-        return localMethods[0];
-    }
-
-    public static PsiJavaToken findJavaToken(PsiElement psiElement, String token) {
-        for (PsiElement child : psiElement.getChildren()) {
-            if (child instanceof PsiJavaToken && child.getText().equals(token))
-                return (PsiJavaToken) child;
-        }
-        return null;
-    }
-
     public static <T extends PsiElement> T findPsiElement(PsiElement source, Class<T> targetClass) {
         List<T> result = findPsiElements(source, targetClass);
         if (!result.isEmpty())
@@ -90,16 +60,26 @@ public class PsiUtils {
     }
 
     static <T extends PsiElement> List<T> findPsiElements(PsiElement source, Class<T> targetClass) {
-        return findPsiElements(source, targetClass, false);
+        return findPsiElements(source, targetClass, false, false);
     }
 
-    public static <T extends PsiElement> List<T> findPsiElements(PsiElement source, Class<T> targetClass, boolean recurse) {
+    public static <T extends PsiElement> List<T> findPsiElements(
+        PsiElement source, Class<T> targetClass, boolean recurse) {
+        return findPsiElements(source, targetClass, recurse, false);
+    }
+
+    public static <T extends PsiElement> List<T> findPsiElements(
+        PsiElement source, Class<T> targetClass, boolean recurse, boolean stopOnFind) {
+
         ArrayList<T> resultElements = new ArrayList<T>();
         for (PsiElement childElement : source.getChildren()) {
-            if (targetClass.isAssignableFrom(childElement.getClass()))
+            if (targetClass.isAssignableFrom(childElement.getClass())) {
                 resultElements.add((T) childElement);
+                if (stopOnFind)
+                    continue;
+            }
             if (recurse)
-                resultElements.addAll(findPsiElements(childElement, targetClass, true));
+                resultElements.addAll(findPsiElements(childElement, targetClass, true, stopOnFind));
         }
         return resultElements;
     }

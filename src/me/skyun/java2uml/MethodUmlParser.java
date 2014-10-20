@@ -69,7 +69,8 @@ public class MethodUmlParser extends UmlParser {
     private String getInnerClassUml() {
         String innerClassUml = "";
         String refInnerClassUml = "";
-        List<PsiAnonymousClass> anonyClasses = PsiUtils.findPsiElements(mPsiMethod.getBody(), PsiAnonymousClass.class, true);
+        List<PsiAnonymousClass> anonyClasses =
+            PsiUtils.findPsiElements(mPsiMethod.getBody(), PsiAnonymousClass.class, true, true);
         for (PsiAnonymousClass anonyClass : anonyClasses) {
             PsiJavaCodeReferenceElement referenceElement =
                 PsiUtils.findPsiElement(anonyClass, PsiJavaCodeReferenceElement.class);
