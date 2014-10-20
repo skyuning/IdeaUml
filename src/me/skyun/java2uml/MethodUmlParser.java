@@ -6,6 +6,7 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiCodeBlock;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiExpressionStatement;
+import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiIfStatement;
 import com.intellij.psi.PsiJavaCodeReferenceElement;
 import com.intellij.psi.PsiMethod;
@@ -25,7 +26,7 @@ public class MethodUmlParser extends UmlParser {
 
     private static String STATEMENT = "-d-> \"%s\" as %s\n";
     private static String CODE_FRAG = "-d-> code fragment: (%d-%d)\n";
-    private static String REFERENCE = "\"%s\" -r-> [%s] \"%s\" << Begin >>\n";
+    private static String REFERENCE = "\"%s\" -r-> \"call %s\" << Begin >>\n";
 
     private PsiMethod mPsiMethod;
 
@@ -37,11 +38,13 @@ public class MethodUmlParser extends UmlParser {
     @Override
     public String parse() {
         String fullMethodName = getFullMethodName(mPsiMethod);
-        String uml = String.format("=== %s_start === --> === %s_start ===\n", fullMethodName, fullMethodName);
-        uml += getBlockUml(mPsiMethod.getBody());
-        uml += getBlockReferenceUml(mPsiMethod.getBody());
-        uml = addIndent(uml);
-        uml = formatPartition(fullMethodName, uml);
+        String blockUml = String.format("=== %s_start === --> === %s_start ===\n", fullMethodName, fullMethodName);
+        blockUml += getBlockUml(mPsiMethod.getBody());
+        blockUml = addIndent(blockUml);
+        blockUml = formatPartition(fullMethodName, blockUml);
+        String uml = String.format("\"call %s\" --> %s\n", fullMethodName, fullMethodName)
+            + blockUml
+            + getBlockReferenceUml(mPsiMethod.getBody());
         return uml;
 //        uml += getInnerClassUml();
     }
@@ -167,8 +170,8 @@ public class MethodUmlParser extends UmlParser {
                 continue;
             if (!resovedMethod.getContainingFile().equals(statement.getContainingFile()))
                 continue;
-            uml += String.format(REFERENCE, getDigest(getStatementText(statement)),
-                resovedMethod.getName(), getFullMethodName(resovedMethod));
+            uml += String.format(REFERENCE,
+                getDigest(getStatementText(statement)), getFullMethodName(resovedMethod));
         }
         return uml;
     }
@@ -190,8 +193,14 @@ public class MethodUmlParser extends UmlParser {
     private static <T extends PsiElement> T removeInnerClass(T element) {
         T _element = (T) element.copy();
         List<PsiAnonymousClass> innerClasses = PsiUtils.findPsiElements(_element, PsiAnonymousClass.class, true);
-        for (PsiAnonymousClass innerClass : innerClasses)
-            innerClass.deleteChildRange(PsiUtils.findJavaToken(innerClass, "{"), PsiUtils.findJavaToken(innerClass, "}"));
+        for (PsiAnonymousClass innerClass : innerClasses) {
+            List<PsiField> fields = PsiUtils.findPsiElements(innerClass, PsiField.class, true);
+            List<PsiMethod> methods = PsiUtils.findPsiElements(innerClass, PsiMethod.class, true);
+            for (PsiField f : fields)
+                f.delete();
+            for (PsiMethod m : methods)
+                m.delete();
+        }
         return _element;
     }
 
