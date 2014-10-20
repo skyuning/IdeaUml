@@ -89,7 +89,7 @@ public class MethodUmlParser extends UmlParser {
             String innerClassName = referenceElement.getText() + "_" + referenceElement.getTextOffset();
             innerClassUml += new ClassUmlParser(anonyClass, innerClassName).parse();
 
-            PsiStatement statement = PsiUtils.getContainingParent(anonyClass, PsiStatement.class, mPsiMethod);
+            PsiStatement statement = PsiUtils.getContainingParent(anonyClass, PsiStatement.class, null);
             refInnerClassUml += String.format(REFERENCE, getDigest(getStatementText(statement)), innerClassName);
         }
         return innerClassUml + refInnerClassUml;
@@ -217,13 +217,6 @@ public class MethodUmlParser extends UmlParser {
         return uml;
     }
 
-//    private String getScopePrefix(PsiElement element) {
-//        PsiClass containingClass = PsiUtils.getContainingParent(element, PsiClass.class);
-//        PsiMethod continingMethod = PsiUtils.getContainingParent(element, PsiMethod.class);
-//        String scopePrefix = containingClass.getName() + "_" + continingMethod.getName() + "_";
-//        return scopePrefix;
-//    }
-
     private String getBlockReferenceUml(PsiCodeBlock codeBlock) {
         String uml = "";
         for (PsiStatement statement : codeBlock.getStatements())
@@ -259,31 +252,34 @@ public class MethodUmlParser extends UmlParser {
     }
 
     private String getIfUml(PsiIfStatement ifStatement) {
-        String thenBranchUml = "";
-        if (ifStatement.getThenBranch() instanceof PsiExpressionStatement) {
-            thenBranchUml = getStatementUml(ifStatement.getThenBranch(), "yes");
-        } else if (ifStatement.getThenBranch() instanceof PsiBlockStatement) {
-            PsiBlockStatement thenBlock = (PsiBlockStatement) ifStatement.getThenBranch();
-            thenBranchUml = getBlockUml(thenBlock.getCodeBlock());
-        }
-        thenBranchUml += "  --> " + getStatementText(ifStatement.getNextSibling());
+        String endStatementText = "--> " + "end if: " + ifStatement.getTextOffset();
+
+        String thenBranchUml = getIfBrancheUml(ifStatement.getThenBranch());
+        thenBranchUml += endStatementText;
         thenBranchUml = addIndent(thenBranchUml);
         String condition = "if " + getStatementText(ifStatement.getCondition());
-        condition = condition.replaceAll("\n", " ") + "\n";
+        condition = Utils.multiLineJoin(condition, "\\n ") + "\n";
         thenBranchUml = condition + thenBranchUml;
 
-        String elseBranchUml = "";
-        if (ifStatement.getElseBranch() instanceof PsiExpressionStatement) {
-            elseBranchUml += getStatementUml(ifStatement.getElseBranch(), "no");
-        } else if (ifStatement.getElseBranch() instanceof PsiBlockStatement) {
-            PsiBlockStatement elseBlock = (PsiBlockStatement) ifStatement.getElseBranch();
-            elseBranchUml = getBlockUml(elseBlock.getCodeBlock());
-        }
-        elseBranchUml += "  --> " + getStatementText(ifStatement.getNextSibling());
+        String elseBranchUml = getIfBrancheUml(ifStatement.getElseBranch());
+        elseBranchUml += endStatementText;
         elseBranchUml = addIndent(elseBranchUml);
         elseBranchUml = "else\n" + elseBranchUml;
 
         String ifUml = thenBranchUml + elseBranchUml + "endif\n\n";
         return ifUml;
+    }
+
+    private String getIfBrancheUml(PsiStatement ifBranch) {
+        if (ifBranch == null)
+            return "";
+        String uml = "";
+        if (ifBranch instanceof PsiExpressionStatement) {
+            uml = getStatementUml(ifBranch, "yes");
+        } else if (ifBranch instanceof PsiBlockStatement) {
+            PsiBlockStatement thenBlock = (PsiBlockStatement) ifBranch;
+            uml = getBlockUml(thenBlock.getCodeBlock());
+        }
+        return uml;
     }
 }

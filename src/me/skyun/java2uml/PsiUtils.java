@@ -45,8 +45,11 @@ public class PsiUtils {
         while (element != topElement) {
             element = element.getParent();
             assert element != null;
-            if (parentType.isAssignableFrom(element.getClass()))
+            if (parentType.isAssignableFrom(element.getClass())) {
+                if (topElement == null)
+                    return (T) element;
                 result = element;
+            }
         }
         return (T) result;
     }
