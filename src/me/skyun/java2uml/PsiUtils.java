@@ -37,14 +37,18 @@ public class PsiUtils {
         }
     }
 
-    public static <T extends PsiElement> T getContainingParent(PsiElement child, Class<T> parentType) {
+    public static <T extends PsiElement> T getContainingParent(
+        PsiElement child, Class<T> parentType, PsiElement topElement) {
+
         PsiElement element = child;
-        while (true) {
+        PsiElement result = null;
+        while (element != topElement) {
             element = element.getParent();
             assert element != null;
             if (parentType.isAssignableFrom(element.getClass()))
-                return (T) element;
+                result = element;
         }
+        return (T) result;
     }
 
     public static PsiMethod[] findLocalMethods(PsiStatement statement) {

@@ -2,7 +2,6 @@ package me.skyun.java2uml;
 
 import com.intellij.psi.PsiAnonymousClass;
 import com.intellij.psi.PsiBlockStatement;
-import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiCodeBlock;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiExpressionStatement;
@@ -39,7 +38,7 @@ public class MethodUmlParser extends UmlParser {
 
     @Override
     public String parse() {
-        String fullMethodName = getFullMethodName(mPsiMethod);
+        String fullMethodName = getFullName(mPsiMethod);
 
         String blockUml = String.format("=== %s_start === --> === %s_start ===\n", fullMethodName, fullMethodName);
         blockUml += getBlockUml(mPsiMethod.getBody());
@@ -69,14 +68,18 @@ public class MethodUmlParser extends UmlParser {
 
     private String getInnerClassUml() {
         String innerClassUml = "";
+        String refInnerClassUml = "";
         List<PsiAnonymousClass> anonyClasses = PsiUtils.findPsiElements(mPsiMethod.getBody(), PsiAnonymousClass.class, true);
         for (PsiAnonymousClass anonyClass : anonyClasses) {
             PsiJavaCodeReferenceElement referenceElement =
                 PsiUtils.findPsiElement(anonyClass, PsiJavaCodeReferenceElement.class);
             String innerClassName = referenceElement.getText() + "_" + referenceElement.getTextOffset();
             innerClassUml += new ClassUmlParser(anonyClass, innerClassName).parse();
+
+            PsiStatement statement = PsiUtils.getContainingParent(anonyClass, PsiStatement.class, mPsiMethod);
+            refInnerClassUml += String.format(REFERENCE, getDigest(getStatementText(statement)), innerClassName);
         }
-        return innerClassUml;
+        return innerClassUml + refInnerClassUml;
     }
 
     private String parseBlock(PsiCodeBlock block) {
@@ -92,7 +95,7 @@ public class MethodUmlParser extends UmlParser {
                 if (i + 1 < statements.length)
                     uml += getIfUml((PsiIfStatement) statement, getStatementText(statements[i + 1]));
                 else
-                    uml += getIfUml((PsiIfStatement) statement, String.format("=== %s_end === ", getFullMethodName(mPsiMethod)));
+                    uml += getIfUml((PsiIfStatement) statement, String.format("=== %s_end === ", getFullName(mPsiMethod)));
                 continue;
             }
 
@@ -124,7 +127,7 @@ public class MethodUmlParser extends UmlParser {
                     callUml += String.format(REFERENCE,
                         statementText,                      // from node
                         resolvedMthod.getName(),            // -> [arrow tag]
-                        getFullMethodName(resolvedMthod));  // to node
+                        getFullName(resolvedMthod));  // to node
                 }
 
                 // handle anonymous class in call
@@ -134,7 +137,7 @@ public class MethodUmlParser extends UmlParser {
                     callUml += String.format(REFERENCE,
                         statementText,                                          // from node
                         anonyClassName,                                         // -> [arrow tag]
-                        getFullMethodName(mPsiMethod) + "__" + anonyClassName); // to node
+                        getFullName(mPsiMethod) + "__" + anonyClassName); // to node
                 }
 
             }
@@ -181,12 +184,12 @@ public class MethodUmlParser extends UmlParser {
         return uml;
     }
 
-    private String getScopePrefix(PsiElement element) {
-        PsiClass containingClass = PsiUtils.getContainingParent(element, PsiClass.class);
-        PsiMethod continingMethod = PsiUtils.getContainingParent(element, PsiMethod.class);
-        String scopePrefix = containingClass.getName() + "_" + continingMethod.getName() + "_";
-        return scopePrefix;
-    }
+//    private String getScopePrefix(PsiElement element) {
+//        PsiClass containingClass = PsiUtils.getContainingParent(element, PsiClass.class);
+//        PsiMethod continingMethod = PsiUtils.getContainingParent(element, PsiMethod.class);
+//        String scopePrefix = containingClass.getName() + "_" + continingMethod.getName() + "_";
+//        return scopePrefix;
+//    }
 
     private String getBlockReferenceUml(PsiCodeBlock codeBlock) {
         String uml = "";
@@ -214,7 +217,11 @@ public class MethodUmlParser extends UmlParser {
         return statement.getTextOffset() + ":" + _element.getText().replace("\"", "'");
     }
 
-    public String getFullMethodName(PsiMethod method) {
+    public static String getFullMethodName(PsiMethod method) {
+        return method.getContainingClass().getName() + "__" + method.getName();
+    }
+
+    public String getFullName(PsiMethod method) {
         return mClassName + "__" + method.getName();
     }
 
