@@ -48,6 +48,8 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
 import org.eclipse.swt.browser.LocationEvent;
 import org.eclipse.swt.browser.LocationListener;
+import org.eclipse.swt.events.KeyEvent;
+import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
@@ -57,6 +59,7 @@ import org.eclipse.ui.IReusableEditor;
 import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchPart;
+import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.EditorPart;
 import org.eclipse.ui.part.FileEditorInput;
@@ -76,14 +79,12 @@ public class SampleView extends ViewPart {
     public void createPartControl(final Composite parent) {
         // mParent = parent;
         mBrowser = new Browser(parent, SWT.NONE);
-        mBrowser.setUrl("file:///Users/linyun/Documents/workspace/HelloWorldPlugin/svg/B.svg");
         mBrowser.addLocationListener(new LocationListener() {
             @Override
             public void changing(LocationEvent event) {
                 if (!event.location.startsWith("file:///"))
                     return;
 
-                mBrowser.stop();
                 if (mProject == null)
                     return;
 
@@ -92,9 +93,19 @@ public class SampleView extends ViewPart {
                 IFile file = mProject.getProject().getFile(path);
                 IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
                 FileEditorInput newInput = new FileEditorInput(file);
-                page.reuseEditor(mEditor, newInput);
+                IEditorPart alreadyEditor = page.findEditor(newInput);
+                if (alreadyEditor != null)
+                    page.activate(alreadyEditor);
+                else
+                    try {
+                        page.openEditor(newInput, "uml");
+                    } catch (PartInitException e1) {
+                        e1.printStackTrace();
+                    }
+
                 try {
-                    refreshUml(newInput);
+                    IJavaElement javaElement = JavaCore.create(newInput.getFile());
+                    refreshUml(javaElement);
                 } catch (JavaModelException e) {
                     e.printStackTrace();
                 }
@@ -113,28 +124,30 @@ public class SampleView extends ViewPart {
                 if (!(part instanceof CompilationUnitEditor))
                     return;
 
-                if (part instanceof IReusableEditor)
-                    mEditor = (IReusableEditor) part;
+                IEditorPart editor = (IEditorPart) part;
+                if (!(editor.getEditorInput() instanceof IFileEditorInput))
+                    return;
 
-                try {
-                    refreshUml(((EditorPart) part).getEditorInput());
-                } catch (JavaModelException e) {
-                    e.printStackTrace();
+                IFileEditorInput input = (IFileEditorInput) editor.getEditorInput();
+                IJavaElement javaElement = JavaCore.create(input.getFile());
+                if ((mProject == null) && (javaElement instanceof ICompilationUnit)) {
+                    ICompilationUnit javaFile = (ICompilationUnit) javaElement;
+                    mProject = javaFile.getJavaProject();
                 }
+                mBrowser.setUrl(javaElement.getPath().toPortableString());
             }
         });
     }
 
-    private void refreshUml(IEditorInput input) throws JavaModelException {
-        if (!(input instanceof IFileEditorInput))
+    private void refreshUml(IJavaElement javaElement) throws JavaModelException {
+        if (!(javaElement instanceof ICompilationUnit))
             return;
-        IJavaElement javaFile = JavaCore.create(((IFileEditorInput) input).getFile());
+
+        ICompilationUnit javaFile = (ICompilationUnit) javaElement;
 
         if (mProject == null)
             mProject = javaFile.getJavaProject();
 
-        if (!(javaFile instanceof ICompilationUnit))
-            return;
         ICompilationUnit compilationUnit = (ICompilationUnit) javaFile;
 
         String uml = getCompilationUnitUml(compilationUnit);
@@ -147,7 +160,6 @@ public class SampleView extends ViewPart {
         for (IType type : compilationUnit.getAllTypes())
             uml += getTypeUml(type);
         uml = String.format("@startuml\n%s@enduml", uml);
-        IClassFile classFile;
         return uml;
     }
 
