@@ -24,6 +24,8 @@ import java.util.List;
  */
 public class MethodUmlParser extends UmlParser {
 
+    private static final boolean parseIf = false;
+
     private static String STATEMENT = "--> %s \"%s\" as %s\n";
     private static String CODE_FRAG = "-d-> code fragment: (%d-%d)\n";
     private static String REFERENCE = "\"%s\" -r-> \"call %s\" << Begin >>\n";
@@ -57,7 +59,7 @@ public class MethodUmlParser extends UmlParser {
     private String getBlockUml(PsiCodeBlock codeBlock) {
         String uml = "";
         for (PsiStatement statement : codeBlock.getStatements()) {
-            if (statement instanceof PsiIfStatement)
+            if (statement instanceof PsiIfStatement && parseIf)
                 uml += getIfUml((PsiIfStatement) statement);
             else {
                 uml += getStatementUml(statement, null);
@@ -194,7 +196,7 @@ public class MethodUmlParser extends UmlParser {
     }
 
     private String getStatementReferenceUml(PsiStatement statement) {
-        if (statement instanceof PsiIfStatement) {
+        if ((statement instanceof PsiIfStatement) && parseIf) {
             return getIfReferenceUml((PsiIfStatement) statement);
         }
 
