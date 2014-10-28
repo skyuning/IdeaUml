@@ -8,7 +8,18 @@
     </content>
     <orderEntry type="jdk" jdkName="IDEA IC-135.1230" jdkType="IDEA JDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="plantuml" level="project" />
+    <orderEntry type="module-library">
+      <library name="plantuml">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../Java2Uml/libs/plantuml.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/../plantuml/src" />
+          <root url="file://$MODULE_DIR$/../plantuml/src" />
+        </SOURCES>
+      </library>
+    </orderEntry>
   </component>
 </module>
 
