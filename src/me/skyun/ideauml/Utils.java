@@ -1,4 +1,4 @@
-package me.skyun.java2uml;
+package me.skyun.ideauml;
 
 /**
  * Created by linyun on 14-10-16.

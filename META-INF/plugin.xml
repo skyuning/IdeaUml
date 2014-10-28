@@ -1,5 +1,5 @@
 <idea-plugin version="2">
-    <id>me.skyun.java2uml</id>
+    <id>me.skyun.ideauml</id>
     <name>gen uml</name>
     <version>1.0</version>
     <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>

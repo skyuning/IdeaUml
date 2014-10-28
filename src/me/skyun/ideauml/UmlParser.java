@@ -1,4 +1,4 @@
-package me.skyun.java2uml;
+package me.skyun.ideauml;
 
 import com.intellij.psi.PsiElement;
 

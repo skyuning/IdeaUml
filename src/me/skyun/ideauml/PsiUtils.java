@@ -1,16 +1,11 @@
-package me.skyun.java2uml;
+package me.skyun.ideauml;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiIdentifier;
 import com.intellij.psi.PsiJavaFile;
-import com.intellij.psi.PsiJavaToken;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.PsiMethod;
-import com.intellij.psi.PsiMethodCallExpression;
-import com.intellij.psi.PsiReferenceExpression;
 import com.intellij.psi.PsiStatement;
 
 import java.util.ArrayList;
